@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
+      - name: Compute next version
+        id: version
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $false
+
+          function Get-BaseVersion {
+            if (Test-Path "VERSION") {
+              $v = (Get-Content VERSION -Raw).Trim()
+              if ($v -match '^\d+\.\d+\.\d+$') { return $v }
+            }
+            return "0.1.0"
+          }
+
+          function Parse-SemVer([string]$value) {
+            if ($value -notmatch '^(?<maj>\d+)\.(?<min>\d+)\.(?<pat>\d+)$') {
+              throw "Invalid semver: $value"
+            }
+            return [pscustomobject]@{
+              Major = [int]$Matches.maj
+              Minor = [int]$Matches.min
+              Patch = [int]$Matches.pat
+            }
+          }
+
+          git fetch --tags --force
+
+          $tags = @(
+            git tag --list "v*" | ForEach-Object {
+              if ($_ -match '^v(\d+\.\d+\.\d+)$') { $Matches[1] }
+            }
+          )
+
+          $base = Get-BaseVersion
+          $latest = $base
+          foreach ($t in $tags) {
+            $a = Parse-SemVer $latest
+            $b = Parse-SemVer $t
+            if (($b.Major -gt $a.Major) -or
+                (($b.Major -eq $a.Major) -and ($b.Minor -gt $a.Minor)) -or
+                (($b.Major -eq $a.Major) -and ($b.Minor -eq $a.Minor) -and ($b.Patch -gt $a.Patch))) {
+              $latest = $t
+            }
+          }
+
+          if ($tags.Count -eq 0) {
+            $next = $base
+          }
+          else {
+            $baseSem = Parse-SemVer $base
+            $latestSem = Parse-SemVer $latest
+            $baseIsNewer =
+              ($baseSem.Major -gt $latestSem.Major) -or
+              (($baseSem.Major -eq $latestSem.Major) -and ($baseSem.Minor -gt $latestSem.Minor)) -or
+              (($baseSem.Major -eq $latestSem.Major) -and ($baseSem.Minor -eq $latestSem.Minor) -and ($baseSem.Patch -gt $latestSem.Patch))
+
+            if ($baseIsNewer) {
+              $next = $base
+            }
+            else {
+              $next = "{0}.{1}.{2}" -f $latestSem.Major, $latestSem.Minor, ($latestSem.Patch + 1)
+            }
+          }
+
+          # If this exact tag somehow already exists, keep bumping patch.
+          while (@(git tag --list "v$next").Count -gt 0) {
+            $sem = Parse-SemVer $next
+            $next = "{0}.{1}.{2}" -f $sem.Major, $sem.Minor, ($sem.Patch + 1)
+          }
+
+          "version=$next" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "tag=v$next" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Next version: $next"
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $env:Path = "C:\Program Files (x86)\NSIS;C:\Program Files\NSIS;" + $env:Path
+          .\build.ps1 -Version "${{ steps.version.outputs.version }}"
+
+      - name: Create tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $false
+          $version = "${{ steps.version.outputs.version }}"
+          $tag = "${{ steps.version.outputs.tag }}"
+          $setup = "publish\MovieOverlay-Setup-$version.exe"
+
+          if (-not (Test-Path $setup)) {
+            throw "Missing installer: $setup"
+          }
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a $tag -m "Release $tag"
+          git push origin $tag
+          if ($LASTEXITCODE -ne 0) { throw "Failed to push tag $tag" }
+
+          $sha = git rev-parse HEAD
+          $notes = @"
+## Movie Overlay $tag
+
+Automated release from ``main`` (``$sha``).
+
+### Install
+Download ``MovieOverlay-Setup-$version.exe`` and run it (per-user install, no admin required).
+"@
+
+          gh release create $tag $setup --title "Movie Overlay $tag" --notes $notes
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create GitHub release $tag" }
