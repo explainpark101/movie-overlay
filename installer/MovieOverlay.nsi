@@ -13,6 +13,10 @@
   !define OUT_FILE "..\publish\MovieOverlay-Setup-${APP_VERSION}.exe"
 !endif
 
+!ifndef APP_ICON
+  !define APP_ICON "..\assets\app.ico"
+!endif
+
 !define APP_NAME "Movie Overlay"
 !define APP_EXE "MovieOverlay.exe"
 !define APP_PUBLISHER "Movie Overlay"
@@ -28,6 +32,9 @@ SetCompressor /SOLID lzma
 ShowInstDetails show
 ShowUnInstDetails show
 
+Icon "${APP_ICON}"
+UninstallIcon "${APP_ICON}"
+
 Page directory
 Page instfiles
 UninstPage uninstConfirm
@@ -38,9 +45,9 @@ Section "Install"
   File /r "${PUBLISH_DIR}\*.*"
 
   CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-  CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
-  CreateShortcut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
-  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
+  CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
+  CreateShortcut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
+  CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 

@@ -15,6 +15,7 @@
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <StartupObject>MovieOverlay.Program</StartupObject>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -25,7 +26,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" Condition="Exists('Assets')" />
+    <None Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\icon_1000.png" CopyToOutputDirectory="PreserveNewest" Condition="Exists('Assets\icon_1000.png')" />
   </ItemGroup>
 
 </Project>

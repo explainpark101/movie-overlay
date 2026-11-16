@@ -1,5 +1,7 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using MovieOverlay.Models;
 using MovieOverlay.Services;
 using Color = System.Windows.Media.Color;
@@ -26,8 +28,27 @@ public partial class SettingsWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        TrySetWindowIcon();
         ReloadFromController();
         UpdateStatusText();
+    }
+
+    private void TrySetWindowIcon()
+    {
+        var icoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+        if (!File.Exists(icoPath))
+        {
+            return;
+        }
+
+        try
+        {
+            Icon = BitmapFrame.Create(new Uri(icoPath, UriKind.Absolute));
+        }
+        catch
+        {
+            // ignored
+        }
     }
 
     private void OnControllerStateChanged(object? sender, EventArgs e)

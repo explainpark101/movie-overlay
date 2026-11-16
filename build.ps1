@@ -119,11 +119,17 @@ if (Test-Path $setupPath) {
 # NSIS paths: use forward slashes for reliability
 $publishDirNsis = ($publishDir -replace '\\', '/')
 $outFileNsis = ($setupPath -replace '\\', '/')
+$iconPath = Join-Path $Root "assets\app.ico"
+if (-not (Test-Path -LiteralPath $iconPath)) {
+    throw "Installer icon missing: $iconPath (expected from assets\icon_1000.png)"
+}
+$iconPathNsis = ($iconPath -replace '\\', '/')
 
 & $makensis `
     "/DAPP_VERSION=$Version" `
     "/DPUBLISH_DIR=$publishDirNsis" `
     "/DOUT_FILE=$outFileNsis" `
+    "/DAPP_ICON=$iconPathNsis" `
     $nsi
 
 if ($LASTEXITCODE -ne 0) {
