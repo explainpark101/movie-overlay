@@ -10,7 +10,7 @@
 !endif
 
 !ifndef OUT_FILE
-  !define OUT_FILE "..\publish\MovieOverlay-Setup-${APP_VERSION}.exe"
+  !define OUT_FILE "..\dist\MovieOverlay-Setup-${APP_VERSION}.exe"
 !endif
 
 !ifndef APP_ICON

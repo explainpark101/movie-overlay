@@ -33,7 +33,7 @@ From the repo root:
 
 This publishes a self-contained `win-x64` app and builds:
 
-`publish\MovieOverlay-Setup-<version>.exe`
+`dist\MovieOverlay-Setup-<version>.exe`
 
 Version defaults to the [`VERSION`](VERSION) file.
 

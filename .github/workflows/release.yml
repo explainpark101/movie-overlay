@@ -118,7 +118,7 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $false
           $version = "${{ steps.version.outputs.version }}"
           $tag = "${{ steps.version.outputs.tag }}"
-          $setup = "publish\MovieOverlay-Setup-$version.exe"
+          $setup = "dist\MovieOverlay-Setup-$version.exe"
 
           if (-not (Test-Path $setup)) {
             throw "Missing installer: $setup"
